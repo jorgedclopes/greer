@@ -1,11 +1,9 @@
-mysql-connector-python~=8.0.29
-docker~=5.0.3
+docker==6.1.2
 urllib3~=1.26.9
 setuptools~=62.1.0
 PyYAML~=6.0
 wiringpi~=2.60.1
-schedule~=1.1.0
 RPi.GPIO~=0.7.1
 adafruit-circuitpython-bme280~=2.6.11
 Adafruit-Blinka~=7.3.0
-pytz~=2022.1
+pytz==2023.3
