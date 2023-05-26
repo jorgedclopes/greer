@@ -4,6 +4,8 @@ setuptools~=62.1.0
 PyYAML~=6.0
 wiringpi~=2.60.1
 RPi.GPIO~=0.7.1
-adafruit-circuitpython-bme280~=2.6.11
+adafruit-circuitpython-bme280~=2.6.21
 Adafruit-Blinka~=7.3.0
 pytz==2023.3
+prometheus-client==0.13.1
+schedule==1.2.0

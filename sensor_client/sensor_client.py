@@ -1,38 +1,19 @@
 import time
 import schedule
-import mysql.connector
-from datetime import datetime
-
-from typing import List
+import prometheus_client
 
 # import DHT_lib
 import board
 from adafruit_bme280 import basic as adafruit_bme280
 
-
-def setup_db():
-    with mysql.connector.connect(host='localhost',
-                                 port=3306,
-                                 user='root',
-                                 password='rootpass',
-                                 database='sensor') as cnx:
-        cur = cnx.cursor(prepared=True)
-        table_ddl = 'CREATE TABLE IF NOT EXISTS rawData (\
-time TIMESTAMP NOT NULL UNIQUE, \
-simple_check SMALLINT, \
-temperature_simple FLOAT(4), \
-humidity_simple FLOAT(4), \
-temperature FLOAT(4), \
-humidity FLOAT(4), \
-pressure FLOAT(4), \
-height FLOAT(4)\
-);'
-        cur.execute(table_ddl)
-        timezone_query = "SET GLOBAL time_zone = '+01:00';"  # This is my timezone, feel free to change it
-        cur.execute(timezone_query)
-        cnx.commit()
-
-    return
+# Temperature, Pressure, Humidity, Pressure@Sea_Level, Height
+metrics_names = ['temperature', 'humidity', 'pressure', 'altitude']
+metrics: list[prometheus_client.Gauge] = [
+    prometheus_client.Gauge(
+        name=name,
+        documentation=name,
+    ) for name in metrics_names
+]
 
 
 # dht = DHT_lib.DHT(11)
@@ -46,58 +27,33 @@ height FLOAT(4)\
 #
 #     return [chk, dht.humidity, dht.temperature]
 
+def set_gauges():
+    for metric, measure in zip(metrics, get_extended_measurements()):
+        metric.set(measure)
+        print(f"{metric}: {measure}")
+    print()
+
 
 def get_extended_measurements():
     try:
         i2c = board.I2C()  # uses board.SCL and board.SDA
         bme280 = adafruit_bme280.Adafruit_BME280_I2C(i2c)
-        bme280.sea_level_pressure = 1022.
+        bme280.sea_level_pressure = 1015.
         return [bme280.temperature, bme280.humidity, bme280.pressure, bme280.altitude]
     except ValueError:
         print("WARNING: Failed to measuring Adafruit.")
         return [-999., -1., -1., -999]
 
 
-def get_measurements():
-    # simple_measurements = get_simple_measurements()
-    extended_measurements = get_extended_measurements()
-    return [0, 0., 0.] + extended_measurements
-
-
-def insert_measures():
-    with mysql.connector.connect(host='localhost',
-                                 port=3306,
-                                 user='root',
-                                 password='rootpass',
-                                 database='sensor') as cnx:
-        cur = cnx.cursor(prepared=True)
-
-        insert_query = "INSERT INTO rawData \
-    (time, simple_check, temperature_simple, humidity_simple, temperature, humidity, pressure, height) \
-    values(%s, %s, %s, %s, %s, %s, %s, %s);"
-
-        date_time = datetime.utcnow()
-        print(date_time)
-        measures: List[object] = get_measurements()
-        params = [date_time] + measures
-        print("Params: ", params)
-
-        print('Sending data to DB.')
-        cur.execute(insert_query, params)
-
-        # query = 'SELECT * FROM raw_data;'
-        # cur.execute(query)
-        # for el in cur:
-        #     print(el)
-
-        cnx.commit()
-        print('Data to DB sent.')
-    return
+# def get_measurements():
+#     # simple_measurements = get_simple_measurements()
+#     extended_measurements = get_extended_measurements()
+#     return [0, 0., 0.] + extended_measurements
 
 
 if __name__ == '__main__':
-    setup_db()
-    schedule.every(5).seconds.do(insert_measures)
+    prometheus_client.start_http_server(8000)
+    schedule.every(15).seconds.do(set_gauges)
     while True:
         schedule.run_pending()
-        time.sleep(.1)
+        time.sleep(1)
