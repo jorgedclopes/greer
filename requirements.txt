@@ -9,3 +9,4 @@ Adafruit-Blinka~=7.3.0
 pytz==2023.3
 prometheus-client==0.13.1
 schedule==1.2.0
+requests~=2.31.0
