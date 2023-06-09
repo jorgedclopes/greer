@@ -55,8 +55,8 @@ metrics: list[prometheus_client.Gauge] = [
 #     return [chk, dht.humidity, dht.temperature]
 
 
-def set_gauges():
-    for metric, measure in zip(metrics, get_extended_measurements()):
+def set_gauges(pressure_status):
+    for metric, measure in zip(metrics, get_extended_measurements(pressure_status)):
         metric.set(measure)
         print(f"{metric}: {measure}")
     print()
